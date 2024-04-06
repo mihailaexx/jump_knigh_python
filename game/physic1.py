@@ -9,6 +9,7 @@ class Player:
     def __init__(self, x, y) -> None:
         self.rect = pygame.Rect(0, 0, 50, 50)
         self.rect.center = (x, y)
+        self.dx = 0
         self.jump_power = 30
         self.velocity_y = 0
         self.jump_direction = None
@@ -16,19 +17,18 @@ class Player:
 
     def move(self):
         keys = pygame.key.get_pressed()
-        if not keys[pygame.K_SPACE]:
-            if self.on_ground:
-                if keys[pygame.K_LEFT]:
-                    self.rect.x -= 7
-                if keys[pygame.K_RIGHT]:
-                    self.rect.x += 7
-            
+        if self.on_ground and not keys[pygame.K_SPACE]: # Если игрок на земле и не заряжает прыжок
+            if keys[pygame.K_LEFT]:
+                self.dx = -7 # Двигаемся влево
+            elif keys[pygame.K_RIGHT]:
+                self.dx = 7 # Двигаемся вправо
+            else:
+                self.dx = 0 # Стоим на месте
+            self.rect.x += self.dx
 
     def border_collision(self):
-        if self.rect.x < 0:
-            self.rect.x = 0
-        if self.rect.x > WIDTH - 50:
-            self.rect.x = WIDTH - 50
+        if (self.rect.x < 0) or (self.rect.x > WIDTH - 50):
+            self.dx = -self.dx # отскок от стен
         if self.rect.y > HEIGHT - 50:
             self.rect.y = HEIGHT - 50
             self.on_ground = True  # Устанавливаем, что игрок на земле
@@ -39,10 +39,10 @@ class Player:
             if key[pygame.K_SPACE]:  # Зарядка прыжка возможна только на земле
                 self.jump_power += 1
                 self.jump_power = min(self.jump_power, 100)
-            if key[pygame.K_LEFT]:
-                self.jump_direction = "left"
-            if key[pygame.K_RIGHT]:
-                self.jump_direction = "right"
+            if key[pygame.K_LEFT]: # Если игрок заряжает прыжок и нажимает налево
+                self.dx = -7
+            if key[pygame.K_RIGHT]: # Если игрок заряжает прыжок и нажимает направо
+                self.dx = 7
 
     def jump(self):
         if self.on_ground:
@@ -54,10 +54,7 @@ class Player:
         if not self.on_ground:
             self.velocity_y += GRAVITY * DT
             self.rect.y += self.velocity_y * DT / 2
-            if self.jump_direction == "left":
-                self.rect.x -= 7
-            if self.jump_direction == "right":
-                self.rect.x += 7
+            self.rect.x += self.dx # Двигаемся влево или вправо (константа) во время прыжка
             if self.rect.bottom > HEIGHT:
                 self.rect.bottom = HEIGHT
                 self.on_ground = True
@@ -91,5 +88,6 @@ while not done:
     screen.blit(pygame.font.Font(None, 18).render(f"Holding power: {player.jump_power}", True, (255, 255, 255)), (10,30))
     screen.blit(pygame.font.Font(None, 18).render(f"Jump dir: {player.jump_direction}", True, (255, 255, 255)), (10,50))
     screen.blit(pygame.font.Font(None, 18).render(f"Velocity: {player.velocity_y}", True, (255, 255, 255)), (10,70))
+    screen.blit(pygame.font.Font(None, 18).render(f"Dx: {player.dx}", True, (255, 255, 255)), (10,90))
     pygame.time.Clock().tick(FPS)
     pygame.display.flip()
