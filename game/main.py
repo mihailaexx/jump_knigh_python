@@ -3,7 +3,7 @@ pygame.init()
 
 WIDTH, HEIGHT = (700, 950)
 GRAVITY = 400
-JUMP_POWER_MULIPLYER = 9
+JUMP_POWER_MULIPLYER = 9.11
 DX = 7
 FPS = 60
 DT = FPS / 1000.0
@@ -28,7 +28,8 @@ class Player:
                 self.dx = 0
             self.rect.x += self.dx
 
-    def border_collision(self, levels):
+    def collision_v3(self, levels):
+        self.on_ground = False
         for block in levels.list[levels.current_level_index]:
             if self.rect.colliderect(block.rect):
                 distances = {
@@ -40,39 +41,40 @@ class Player:
 
                 min_distance = min(distances, key=distances.get)
                 
-                if min_distance == 'top' and self.velocity_y > 0:
-                    self.rect.bottom = block.rect.top
+                if min_distance == 'top':
+                    print('top')
+                    self.rect.bottom = block.rect.top+1
                     self.velocity_y = 0
                     self.on_ground = True
-                    break
-                elif min_distance == 'bottom' and self.velocity_y < 0:
+                elif min_distance == 'bottom':
+                    print('bottom')
                     self.rect.top = block.rect.bottom
                     self.velocity_y = 0
                 elif min_distance == 'left' and self.dx > 0:
+                    print('left')
                     self.rect.right = block.rect.left
                     self.dx = -self.dx
                 elif min_distance == 'right' and self.dx < 0:
+                    print('right')
                     self.rect.left = block.rect.right
                     self.dx = -self.dx
-            elif not self.rect.colliderect(block.rect) and self.rect.y < HEIGHT - 50:
-                self.on_ground = False
+
         if (self.rect.x < 0):
+            print('left border')
             self.rect.x = 0
             self.dx = -self.dx
         if (self.rect.x > WIDTH - 50):
+            print('right border')
             self.rect.x = WIDTH - 50
             self.dx = -self.dx
         if self.rect.y < 0:
+            print('next level')
             self.rect.y = HEIGHT - 50
             levels.current_level_index += 1
         if self.rect.y > HEIGHT - 50:
-            if levels.current_level_index == 0:
-                self.rect.y = HEIGHT - 50
-                self.velocity_y = 0
-                self.on_ground = True
-            else:
-                self.rect.y = 0
-                levels.current_level_index -= 1
+            print('prev level')
+            self.rect.y = 0
+            levels.current_level_index -= 1
 
     def jump_charge(self):
         key = pygame.key.get_pressed()
@@ -87,6 +89,7 @@ class Player:
 
     def jump(self):
         if self.on_ground:
+            self.rect.y -= 1 # a little trick to make player jump, because of collision detection, player lower by 1 pixel and when he jumps he will be on ground
             self.velocity_y = -self.jump_power*JUMP_POWER_MULIPLYER
             self.on_ground = False
             self.jump_power = 20
@@ -113,7 +116,7 @@ class Block:
 class Levels():
     def __init__(self) -> None:
         self.list = [
-            [Block(0,HEIGHT, WIDTH, 1), Block(0, HEIGHT-150, 200, 150), Block(500, HEIGHT-150, 200, 150), Block(200, HEIGHT-625, 300, 150)],
+            [Block(0,HEIGHT-50, WIDTH, 50), Block(0, HEIGHT-200, 200, 200), Block(500, HEIGHT-200, 200, 200), Block(200, HEIGHT-700, 300, 150)],
             [],
             []
         ]
@@ -130,7 +133,7 @@ class Levels():
 class Game:
     def __init__(self) -> None:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        self.player = Player(350, 975)
+        self.player = Player(350, 900)
         self.levels = Levels()
         self.current_level = self.levels.current_level()
         self.done = 0
@@ -153,7 +156,7 @@ class Game:
 
     def update(self):
         self.player.move()
-        self.player.border_collision(self.levels)
+        self.player.collision_v3(self.levels)
         self.player.jump_charge()
         self.player.update()
 
@@ -164,7 +167,7 @@ class Game:
         self.screen.blit(pygame.font.Font(None, 18).render(f"POS: {self.player.rect.x}, {self.player.rect.y}", True, (255, 255, 255)), (10,10))
         self.screen.blit(pygame.font.Font(None, 18).render(f"Holding power: {self.player.jump_power}", True, (255, 255, 255)), (10,30))
         self.screen.blit(pygame.font.Font(None, 18).render(f"Dx: {self.player.dx}", True, (255, 255, 255)), (10,50))
-        self.screen.blit(pygame.font.Font(None, 18).render(f"Velocity: {-self.player.velocity_y}", True, (255, 255, 255)), (10,70))
+        self.screen.blit(pygame.font.Font(None, 18).render(f"Velocity: {-int(self.player.velocity_y)}", True, (255, 255, 255)), (10,70))
         self.screen.blit(pygame.font.Font(None, 18).render(f"Level: {self.levels.current_level_index}", True, (255, 255, 255)), (10,90))
         self.screen.blit(pygame.font.Font(None, 18).render(f"On ground: {self.player.on_ground}", True, (255, 255, 255)), (10,110))
         
